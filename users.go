@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"github.com/google/uuid"
+	"internal/auth"
+	"internal/database"
 	"log"
 	"net/http"
 	"time"
@@ -28,7 +30,17 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	user, err := cfg.db.CreateUser(r.Context(), params.Email)
+	hash, err := auth.HashPassword(params.Password)
+	if err != nil {
+		log.Printf("Something went wrong during registration: %s", err)
+		respondWithError(w, http.StatusInternalServerError, "Could not process registration", nil)
+		return
+	}
+
+	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
+		Email:          params.Email,
+		HashedPassword: hash,
+	})
 	if err != nil {
 		log.Printf("Could not create user %s in DB: %s", params.Email, err)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", nil)
