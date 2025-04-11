@@ -15,6 +15,7 @@ type apiConfig struct {
 	db             *database.Queries
 	fileserverHits atomic.Int32
 	platform       string
+	secretToken    string
 }
 
 func main() {
@@ -22,10 +23,16 @@ func main() {
 	const port = "8080"
 
 	godotenv.Load()
+	secretToken := os.Getenv("SECRET_TOKEN")
+	if secretToken == "" {
+		log.Fatal("SECRET_TOKEN must be set")
+	}
+
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
 	}
+
 	platform := os.Getenv("PLATFORM")
 	if platform == "" {
 		log.Fatal("PLATFORM must be set")
@@ -43,6 +50,7 @@ func main() {
 		db:             dbQueries,
 		fileserverHits: atomic.Int32{},
 		platform:       platform,
+		secretToken:    secretToken,
 	}
 
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))

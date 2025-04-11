@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"log"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 )
 
 func HashPassword(password string) (string, error) {
@@ -11,7 +11,7 @@ func HashPassword(password string) (string, error) {
 		log.Printf("Something went wrong: %s", err)
 		return "", err
 	}
-	return string(hash[:]), nil 
+	return string(hash[:]), nil
 }
 
 func CheckPasswordHash(hash, password string) error {

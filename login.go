@@ -11,14 +11,16 @@ import (
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Password string `json:"password"`
-		Email    string `json:"email"`
+		Password         string `json:"password"`
+		Email            string `json:"email"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}
 	type User struct {
 		ID        uuid.UUID `json:"id"`
 		CreatedAt time.Time `json:"created_at"`
 		UpdatedAt time.Time `json:"updated_at"`
 		Email     string    `json:"email"`
+		Token     string    `json:"token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -27,6 +29,13 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
+	}
+
+	var expiresIn time.Duration
+	if (params.ExpiresInSeconds <= 0) || (params.ExpiresInSeconds > 3600) {
+		expiresIn = 3600 * time.Second
+	} else {
+		expiresIn = 100 * time.Second
 	}
 
 	user, err := cfg.db.GetUser(r.Context(), params.Email)
@@ -40,11 +49,17 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", nil)
 		return
 	} else {
+		token, err := auth.MakeJWT(user.ID, cfg.secretToken, expiresIn)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Something went wrong", nil)
+			return
+		}
 		respondWithJSON(w, http.StatusOK, User{
 			ID:        user.ID,
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
+			Token:     token,
 		})
 	}
 }

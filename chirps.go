@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/google/uuid"
 	"internal/database"
+	"internal/auth"
 	"log"
 	"net/http"
 	"strings"
