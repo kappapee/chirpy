@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"github.com/google/uuid"
-	"internal/database"
 	"internal/auth"
+	"internal/database"
 	"log"
 	"net/http"
 	"strings"
@@ -25,11 +25,33 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		UserID uuid.UUID `json:"user_id"`
 	}
 
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get token", nil)
+		log.Printf("Couldn't get token: %s", err)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.platform)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Authorization error HERE", nil)
+		log.Printf("User not authorized HERE: %s", err)
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+	// TODO: check why is this thing throwing a W/E if I use err here as well?
+	error := decoder.Decode(&params)
+	if error != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", nil)
+		log.Printf("Couldn't decode parameters: %s", error)
+		return
+	}
+
+	if userID.String() != params.UserID.String() {
+		respondWithError(w, http.StatusUnauthorized, "Authorization error", nil)
+		log.Printf("User not authorized: %s", err)
 		return
 	}
 
