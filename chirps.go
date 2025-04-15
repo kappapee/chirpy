@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"internal/auth"
 	"internal/database"
@@ -21,37 +22,26 @@ type Chirp struct {
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
-
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get token", nil)
-		log.Printf("Couldn't get token: %s", err)
+		log.Printf("Couldn't get token: %v", err)
 		return
 	}
 
-	userID, err := auth.ValidateJWT(token, cfg.platform)
+	userID, err := auth.ValidateJWT(token, cfg.secretToken)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Authorization error HERE", nil)
-		log.Printf("User not authorized HERE: %s", err)
-		return
+		log.Printf("User not authorized: %v", err)
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	// TODO: check why is this thing throwing a W/E if I use err here as well?
-	error := decoder.Decode(&params)
-	if error != nil {
+	err = decoder.Decode(&params)
+	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", nil)
-		log.Printf("Couldn't decode parameters: %s", error)
-		return
-	}
-
-	if userID.String() != params.UserID.String() {
-		respondWithError(w, http.StatusUnauthorized, "Authorization error", nil)
-		log.Printf("User not authorized: %s", err)
+		log.Printf("Couldn't decode parameters: %v", err)
 		return
 	}
 
@@ -65,10 +55,10 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 
 	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleaned,
-		UserID: params.UserID,
+		UserID: userID,
 	})
 	if err != nil {
-		log.Printf("Could not create chirp in DB: %s", err)
+		log.Printf("Could not create chirp in DB: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp", nil)
 		return
 	}
@@ -84,7 +74,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 	dbChirps, err := cfg.db.GetChirps(r.Context())
 	if err != nil {
-		log.Printf("Could not retrieve chirps from DB: %s", err)
+		log.Printf("Could not retrieve chirps from DB: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps", nil)
 		return
 	}
@@ -110,7 +100,7 @@ func (cfg *apiConfig) handlerGetChirpByID(w http.ResponseWriter, r *http.Request
 	}
 	chirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
 	if err != nil {
-		log.Printf("Could not retrieve chirp from DB: %s", err)
+		log.Printf("Could not retrieve chirp from DB: %v", err)
 		respondWithError(w, http.StatusNotFound, "Couldn't retrieve chirp", nil)
 		return
 	}

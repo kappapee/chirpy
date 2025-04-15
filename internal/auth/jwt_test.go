@@ -3,12 +3,11 @@ package auth
 import (
 	"github.com/google/uuid"
 	"testing"
-	"time"
 )
 
 func TestValidateJWT(t *testing.T) {
 	userID := uuid.New()
-	validToken, _ := MakeJWT(userID, "secret", time.Hour)
+	validToken, _ := MakeJWT(userID, "secret")
 
 	tests := []struct {
 		name        string

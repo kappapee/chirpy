@@ -12,7 +12,7 @@ func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
 	}
 	err := cfg.db.DeleteUsers(r.Context())
 	if err != nil {
-		log.Printf("Could not execute DB query: %s", err)
+		log.Printf("Could not execute DB query: %v", err)
 		return
 	}
 	cfg.fileserverHits.Store(0)

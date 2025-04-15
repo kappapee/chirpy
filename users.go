@@ -32,7 +32,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 
 	hash, err := auth.HashPassword(params.Password)
 	if err != nil {
-		log.Printf("Something went wrong during registration: %s", err)
+		log.Printf("Something went wrong during registration: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "Could not process registration", nil)
 		return
 	}
@@ -42,7 +42,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		HashedPassword: hash,
 	})
 	if err != nil {
-		log.Printf("Could not create user %s in DB: %s", params.Email, err)
+		log.Printf("Could not create user %s in DB: %v", params.Email, err)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", nil)
 		return
 	}
